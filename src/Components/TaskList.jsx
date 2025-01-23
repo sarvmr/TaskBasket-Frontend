@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import TaskItem from './TaskItem';
 import AddTaskForm from './AddTaskForm';
-import { Container, Typography, Button, Stack } from '@mui/material';
+import { Container, Typography, Button, Stack, TextField, MenuItem } from '@mui/material';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [sortCriteria, setSortCriteria] = useState('');
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -17,6 +18,27 @@ const TaskList = () => {
 
     fetchTasks();
   }, []);
+
+  const handleSortChange = (e) => {
+    const criteria = e.target.value;
+    setSortCriteria(criteria);
+
+    // Sort tasks based on selected criteria
+    const sortedTasks = [...tasks].sort((a, b) => {
+      if (criteria === 'status') {
+        const statusOrder = { Closed: 3, Pending: 2, Open: 1 };
+        return statusOrder[a.status] - statusOrder[b.status];
+      }
+      if (criteria === 'priority') {
+        const priorityOrder = { Low: 3, Medium: 2, High: 1 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      if (criteria === 'dueDate') return new Date(a.dueDate || 0) - new Date(b.dueDate || 0);
+      return 0;
+    });
+
+    setTasks(sortedTasks);
+  };
 
   const handleAddTask = async (newTask) => {
     const response = await fetch('http://localhost:5080/api/task', {
@@ -36,8 +58,8 @@ const TaskList = () => {
   };
 
   const handleEditTask = (task) => {
-    setEditingTask(task); // Pass the task to be edited
-    setIsDialogOpen(true); // Open the AddTaskForm as an edit form
+    setEditingTask(task);
+    setIsDialogOpen(true);
   };
 
   const handleUpdateTask = async (updatedTask) => {
@@ -47,9 +69,7 @@ const TaskList = () => {
       body: JSON.stringify(updatedTask),
     });
     setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
+      prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
     );
     setEditingTask(null);
   };
@@ -60,7 +80,19 @@ const TaskList = () => {
         Your Tasks
       </Typography>
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h6">Tasks</Typography>
+        <TextField
+          select
+          label="Sort By"
+          value={sortCriteria}
+          onChange={handleSortChange}
+          variant="outlined"
+          sx={{ width: 200 }}
+        >
+          <MenuItem value="">None</MenuItem>
+          <MenuItem value="status">Status</MenuItem>
+          <MenuItem value="priority">Priority</MenuItem>
+          <MenuItem value="dueDate">Due Date</MenuItem>
+        </TextField>
         <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
           Add Task
         </Button>
