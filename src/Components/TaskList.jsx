@@ -1,22 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import TaskItem from './TaskItem';
 import AddTaskForm from './AddTaskForm';
+import LogoutButton from './LogoutButton';
 import { Container, Typography, Button, Stack, TextField, MenuItem } from '@mui/material';
+import { fetchTasks } from '../Services/apiService';
+import { getToken } from '../Services/authService';
+import { useNavigate } from 'react-router-dom';
+
+const API_URL = 'http://localhost:5080/api/task';
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [sortCriteria, setSortCriteria] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      const response = await fetch('http://localhost:5080/api/task');
-      const data = await response.json();
-      setTasks(data);
-    };
+    if (!getToken()) {
+      navigate('/login'); // Redirect to login if no token is found
+      return;
+    }
 
-    fetchTasks();
+    const loadTasks = async () => {
+      try {
+        const data = await fetchTasks();
+        setTasks(data);
+      } catch (error) {
+        console.error('Failed to fetch tasks:', error);
+        navigate('/login'); // Redirect if unauthorized
+      }
+    };
+    loadTasks();
   }, []);
 
   const handleSortChange = (e) => {
@@ -41,20 +56,46 @@ const TaskList = () => {
   };
 
   const handleAddTask = async (newTask) => {
-    const response = await fetch('http://localhost:5080/api/task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newTask),
-    });
-    const createdTask = await response.json();
-    setTasks((prevTasks) => [...prevTasks, createdTask]);
+    try {
+      const token = getToken();
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // Include JWT token
+        },
+        body: JSON.stringify(newTask),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add task');
+      }
+
+      const createdTask = await response.json();
+      setTasks((prevTasks) => [...prevTasks, createdTask]);
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
   };
 
   const handleDeleteTask = async (id) => {
-    await fetch(`http://localhost:5080/api/task/${id}`, {
-      method: 'DELETE',
-    });
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
   const handleEditTask = (task) => {
@@ -63,15 +104,28 @@ const TaskList = () => {
   };
 
   const handleUpdateTask = async (updatedTask) => {
-    await fetch(`http://localhost:5080/api/task/${updatedTask.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedTask),
-    });
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-    );
-    setEditingTask(null);
+    try {
+      const token = getToken();
+      const response = await fetch(`${API_URL}/${updatedTask.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedTask),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+      );
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
   };
 
   return (
@@ -93,9 +147,11 @@ const TaskList = () => {
           <MenuItem value="priority">Priority</MenuItem>
           <MenuItem value="dueDate">Due Date</MenuItem>
         </TextField>
+        
         <Button variant="contained" color="primary" onClick={() => setIsDialogOpen(true)}>
           Add Task
         </Button>
+        <LogoutButton />
       </Stack>
 
       {tasks.map((task) => (
