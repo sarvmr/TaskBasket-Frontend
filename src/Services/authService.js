@@ -28,3 +28,14 @@ export const logoutUser = () => {
 export const getToken = () => {
     return localStorage.getItem('token');
 };
+
+export const sendPasswordResetEmail = async (email) => {
+    return await axios.post(`${API_URL}/forgot-password`, { email });
+};
+
+export const resetPassword = async (token, newPassword) => {
+    return await axios.post(`${API_URL}/reset-password`, { token, newPassword }, {
+        headers: { 'Content-Type': 'application/json' }
+    });
+};
+

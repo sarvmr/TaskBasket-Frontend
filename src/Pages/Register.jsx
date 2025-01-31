@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser } from '../Services/authService';
-import { TextField, Button, Container, Typography, Alert, Stack } from '@mui/material';
+import { TextField, Button, Container, Typography, Alert, Stack, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 const Register = () => {
   const [userData, setUserData] = useState({
     username: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
@@ -17,11 +20,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const response = await registerUser(userData);
-    if (response.error) {
-      setError(response.error);
-    } else {
-      navigate('/login');
+    try {
+      await registerUser(userData);
+      navigate('/login'); // Redirect to login after registration
+    } catch (err) {
+      setError(err.response?.data || 'Registration failed');
     }
   };
 
@@ -40,14 +43,35 @@ const Register = () => {
           required
         />
         <TextField
+          label="Email"
+          name="email"
+          type="email"
+          value={userData.email}
+          onChange={handleChange}
+          margin="normal"
+          fullWidth
+          required
+        />
+        <TextField
           label="Password"
           name="password"
-          type="password"
+          type={showPassword ? 'text' : 'password'}
           value={userData.password}
           onChange={handleChange}
           margin="normal"
           fullWidth
           required
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
         />
         <Button type="submit" variant="contained" color="primary">
           Register
