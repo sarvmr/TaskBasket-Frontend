@@ -12,7 +12,14 @@ const LogoutButton = () => {
   };
 
   return (
-    <Button onClick={handleLogout} variant="contained" color="secondary">
+    <Button onClick={handleLogout} variant="contained" 
+     sx={{
+        backgroundColor: "#ff5733",
+        color: "white",
+        "&:hover": {
+          backgroundColor: "#f73378",
+        },
+     }}>
       Logout
     </Button>
   );

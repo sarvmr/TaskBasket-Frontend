@@ -39,3 +39,19 @@ export const resetPassword = async (token, newPassword) => {
     });
 };
 
+export const fetchUser = async () => {
+    try {
+        const token = getToken();
+        const response = await axios.get(`${API_URL}/user`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Fetch User Error:', error.response?.data || error.message);
+        throw error;
+    }
+};
+
